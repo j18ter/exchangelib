@@ -4,6 +4,7 @@ A protocol is an endpoint for EWS service connections. It contains all necessary
 Protocols should be accessed through an Account, and are either created from a default Configuration or autodiscovered
 when creating an Account.
 """
+import os
 import abc
 import datetime
 import logging
@@ -323,8 +324,10 @@ class BaseProtocol:
             # for the provided authorization code or refresh token.
             #
             # Suppress looks-like-password warning from Bandit.
-            token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"  # nosec
-
+            auth_host = os.getenv('AUTHORITY_HOST');
+            if (not auth_host):
+                auth_host = "https://login.microsoftonline.com"
+            token_url = f"{auth_host}/common/oauth2/v2.0/token"  # nosec
             client_params = {}
             if has_token:
                 session_params["token"] = self.credentials.access_token
@@ -352,7 +355,10 @@ class BaseProtocol:
                 )
             client = WebApplicationClient(self.credentials.client_id, **client_params)
         else:
-            token_url = f"https://login.microsoftonline.com/{self.credentials.tenant_id}/oauth2/v2.0/token"
+            auth_host = os.getenv('AUTHORITY_HOST');
+            if (not auth_host):
+                auth_host = "https://login.microsoftonline.com"
+            token_url = f"{auth_host}/{self.credentials.tenant_id}/oauth2/v2.0/token"
             client = BackendApplicationClient(client_id=self.credentials.client_id)
 
         session = self.raw_session(self.service_endpoint, oauth2_client=client, oauth2_session_params=session_params)
